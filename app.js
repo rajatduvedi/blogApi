@@ -12,6 +12,10 @@ var schedule = require('./utill/schedule')
 
 var app = express();
 
+process.on('unhandledRejection', (reason, p) => {
+  console.log('Unhandled Rejection at:', p, 'reason:', reason);
+  // application specific logging, throwing an error, or other logic here
+});
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -23,6 +27,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/private/assets', express.static(__dirname + '/private/assets'));
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", 'http://localhost:4200'); //<-- you can change this with a specific url like http://localhost:4200

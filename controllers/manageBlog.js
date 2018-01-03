@@ -12,10 +12,15 @@ module.exports = {
   getBlogById: getBlogById,
   getBlogBysubcategory: getBlogBysubcategory,
   getRecentBlog:getRecentBlog,
+  getPopularBlog: getPopularBlog,
+  deleteBlogById: deleteBlogById,
+  getBlogBycategory:getBlogBycategory
 }
 
   function createBlogCategory(req, res, next) {
     console.log(req.body);
+    console.log(req.body.blogimageUrl);
+
     managePCategory = Blog.BlogCategory(req.body);
     if(req.body.parentCategoryId == 0) {
       managePCategory.save().then(newBlog => {
@@ -81,28 +86,40 @@ module.exports = {
   function createBlog(req, res, next){
     // blog = Blog.Blog;
     blog = Blog.Blog;
-    blog.findOne({_id: req.body._id}).then(blogDoc => {
-      if(blogDoc) {
-        blog.findOneAndUpdate({_id: req.body._id}, req.body, {new: true}).then(doc => {
-          return res.status(200)
-            .json(doc);
-        },err => {
-          return next(err);
-        });
-      }else {
-        newBlog = new Blog.Blog(req.body);
-        newBlog.blogCreationDate = new Date();
-        newBlog.save().then(newBlog => {
-          return res.status(200)
-            .json(newBlog);
-        },err => {
-          return next(err);
-        });
-      }
-    });
+    console.log(req.body._id);
+      blog.findOne({_id: req.body._id}).then(blogDoc => {
+        if(blogDoc) {
+          blog.findOneAndUpdate({_id: req.body._id}, req.body, {new: true}).then(doc => {
+            return res.status(200)
+              .json(doc);
+          },err => {
+            return next(err);
+          });
+        }else {
+          newBlog = new Blog.Blog(req.body);
+          newBlog.blogCreationDate = new Date();
+          newBlog.save().then(newBlog => {
+            return res.status(200)
+              .json(newBlog);
+          },err => {
+            return next(err);
+          });
+        }
+      });
+    // }
+    // else{
+    //   newBlog = new Blog.Blog(req.body);
+    //   newBlog.blogCreationDate = new Date();
+    //   newBlog.save().then(newBlog => {
+    //     return res.status(200)
+    //       .json(newBlog);
+    //   },err => {
+    //     return next(err);
+    //   });
+    // }
   }
 
-  function getAllBlogs(req, res, next) {
+  function getAllBlogs(req, res, next){
     blog = Blog.Blog;
     blog.find().exec(function(err, blogDoc) {
       if(err) {
@@ -138,7 +155,9 @@ module.exports = {
       blog = Blog.Blog;
       console.log(req.params);
       console.log(req.params.subCategoryKey);
-      blog.find({ category: req.params.category,subCategory: req.params.subCategory}).then(blogDoc => {
+      var limit = 6;
+      var index = req.params.index;
+      blog.find({ category: req.params.category,subCategory: req.params.subCategory}).skip(limit*index).limit(limit).then(blogDoc => {
         if(blogDoc) {
           return res.status(200)
             .json(blogDoc);
@@ -151,7 +170,9 @@ module.exports = {
 
   function getRecentBlog(req, res, next) {
     blog = Blog.Blog;
-    blog.find().sort({blogCreationDate: 'desc'}).exec(function(err, blogDoc) {
+    var limit = 6;
+    var index = req.params.index;
+    blog.find().skip(limit*index).limit(limit).sort({blogCreationDate: 'desc'}).exec(function(err, blogDoc) {
       if(err) {
         return next(err);
       }
@@ -165,8 +186,68 @@ module.exports = {
     })
   }
 
+  function getPopularBlog(req, res, next) {
+    blog = Blog.Blog;
+    var limit = 6;
+    var index = req.params.index;
+    blog.find().skip(limit*index).limit(limit).sort({totalLikes: 'desc', comments: 'desc'}).exec(function(err, blogDoc) {
+      if(err) {
+        return next(err);
+      }
+      if(blogDoc) {
+        return res.status(200)
+          .json(blogDoc);
+      }else {
+        return res.status(404)
+          .json({message: "Sorry there is no Blog"});
+      }
+    })
+  }
 
-  // function getBlogBysubcategory(req, res, next) {
-  //   blog = Blog.Blog;
-  //   console.log(req.params);
-  // }
+  function getBlogBycategory(req, res, next){
+    blog = Blog.Blog;
+    console.log(req.params);
+    var limit = 6;
+    var index = req.params.index;
+    blog.find({ category: req.params.category}).skip(limit*index).limit(limit).then(blogDoc => {
+      if(blogDoc) {
+        return res.status(200)
+          .json(blogDoc);
+      } else {
+        return res.status(404)
+          .json({message: "Sorry there is no Blog"});
+      }
+    })
+  }
+
+  function deleteBlogById(req, res, next){
+    blog = Blog.Blog;
+    console.log(req.body.data);
+    blog.findOne({_id: req.body._id})
+      .exec(function(error, blogData){
+        if(error) {
+          console.log(error);
+          return next(error);
+        }
+        if(blogData){
+          blog.findOneAndRemove({_id: req.body._id}).then((doc) => {
+            console.log(doc);
+            return res.status(200)
+              .json(doc);
+          },
+          (err) => {
+            console.log(err);
+            return next(err)
+          });
+        }
+        else {
+          return res.status(404)
+           .json({"message": "Blog not found"});
+        }
+      });
+  }
+
+  function deleteCategory(req, res, next){
+    blog = Blog.Blog;
+
+  }
